@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:sqflite_demo_project/sqlDataBase/sqlhelper.dart';
 
@@ -37,6 +39,22 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _updateItem(int id) async {
     await SqlHelper.updateItem(id, _titleController.text, _descController.text);
+    _refreshJournals();
+  }
+
+  void _deletItem(int id) async {
+    await SqlHelper.deleteItem(id);
+    ScaffoldMessenger.of(context).showSnackBar( const SnackBar(
+        duration: Duration(seconds: 1),
+        padding: EdgeInsets.all(10),
+        backgroundColor: Colors.amberAccent,
+        showCloseIcon: true,
+        closeIconColor: Colors.black,
+        shape: RoundedRectangleBorder(borderRadius:BorderRadius.all(Radius.circular(15))),
+        content: Padding(
+          padding: EdgeInsets.all(14.0),
+          child: Text('Note Deleted Successfully',style: TextStyle(color: Colors.black),),
+        )));
     _refreshJournals();
   }
 
@@ -100,7 +118,6 @@ class _HomePageState extends State<HomePage> {
                         }
                         _titleController.clear();
                         _descController.clear();
-                        // ignore: use_build_context_synchronously
                         Navigator.of(context).pop();
                       },
                       style: const ButtonStyle(
@@ -125,6 +142,18 @@ class _HomePageState extends State<HomePage> {
           child: ListTile(
             title: Text(_journals[index]['title']),
             subtitle: Text(_journals[index]['description']),
+            trailing: SizedBox(
+                width: 100,
+                child: Row(
+                  children: [
+                    IconButton(
+                        onPressed: () => _showCard(_journals[index]['id']),
+                        icon: const Icon(Icons.edit)),
+                    IconButton(
+                        onPressed: () => _deletItem(_journals[index]['id']),
+                        icon: const Icon(Icons.delete)),
+                  ],
+                )),
           ),
         ),
       ),
