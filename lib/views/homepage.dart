@@ -16,6 +16,7 @@ class _HomePageState extends State<HomePage> {
   bool isLoading = true;
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   void _refreshJournals() async {
     final data = await SqlHelper.getItems();
@@ -32,6 +33,13 @@ class _HomePageState extends State<HomePage> {
     debugPrint("..journals count ${_journals.length}");
   }
 
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descController.dispose();
+    super.dispose();
+  }
+
   Future<void> _addItem() async {
     await SqlHelper.createItem(_titleController.text, _descController.text);
     _refreshJournals();
@@ -44,16 +52,20 @@ class _HomePageState extends State<HomePage> {
 
   void _deletItem(int id) async {
     await SqlHelper.deleteItem(id);
-    ScaffoldMessenger.of(context).showSnackBar( const SnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         duration: Duration(seconds: 1),
         padding: EdgeInsets.all(10),
         backgroundColor: Colors.amberAccent,
         showCloseIcon: true,
         closeIconColor: Colors.black,
-        shape: RoundedRectangleBorder(borderRadius:BorderRadius.all(Radius.circular(15))),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(15))),
         content: Padding(
           padding: EdgeInsets.all(14.0),
-          child: Text('Note Deleted Successfully',style: TextStyle(color: Colors.black),),
+          child: Text(
+            'Note Deleted Successfully',
+            style: TextStyle(color: Colors.black),
+          ),
         )));
     _refreshJournals();
   }
@@ -64,6 +76,22 @@ class _HomePageState extends State<HomePage> {
           _journals.firstWhere((element) => element['id'] == id);
       _titleController.text = existingJournal['title'];
       _descController.text = existingJournal['description'];
+    }
+    submitNote() async {
+      if (_formKey.currentState!.validate()) {
+        String textValue = _titleController.text;
+        debugPrint('Text field value: $textValue');
+
+        if (id == null) {
+          await _addItem();
+        }
+        if (id != null) {
+          await _updateItem(id);
+        }
+        _titleController.clear();
+        _descController.clear();
+        Navigator.of(context).pop();
+      }
     }
 
     showModalBottomSheet(
@@ -77,55 +105,66 @@ class _HomePageState extends State<HomePage> {
                 top: 15,
                 bottom: MediaQuery.of(context).viewInsets.bottom + 220,
               ),
-              child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    TextFormField(
-                      controller: _titleController,
-                      validator: (value) {
-                        if (value!.isEmpty) {
-                          return 'Please enter a value';
-                        }
-                        return null;
-                      },
-                      decoration: const InputDecoration(hintText: 'Title'),
-                    ),
-                    const SizedBox(
-                      height: 15,
-                    ),
-                    TextFormField(
-                      controller: _descController,
-                      validator: (value) {
-                        if (value!.isEmpty) {
-                          return 'Please enter a value';
-                        }
-                        return null;
-                      },
-                      decoration:
-                          const InputDecoration(hintText: 'Description'),
-                    ),
-                    const SizedBox(
-                      height: 20,
-                    ),
-                    ElevatedButton(
-                      onPressed: () async {
-                        if (id == null) {
-                          await _addItem();
-                        }
-                        if (id != null) {
-                          await _updateItem(id);
-                        }
-                        _titleController.clear();
-                        _descController.clear();
-                        Navigator.of(context).pop();
-                      },
-                      style: const ButtonStyle(
-                          backgroundColor:
-                              MaterialStatePropertyAll(Colors.amber)),
-                      child: Text(id == null ? "Create Item" : "Update Item"),
-                    )
-                  ]),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      TextFormField(
+                        controller: _titleController,
+                        validator: (value) {
+                          if (value!.isEmpty) {
+                            return 'Please enter a title';
+                          }
+                          return null;
+                        },
+                        decoration: const InputDecoration(hintText: 'Title'),
+                      ),
+                      const SizedBox(
+                        height: 15,
+                      ),
+                      TextFormField(
+                        controller: _descController,
+                        validator: (value) {
+                          if (value!.isEmpty) {
+                            return 'Please enter a description';
+                          }
+                          return null;
+                        },
+                        decoration:
+                            const InputDecoration(hintText: 'Description'),
+                      ),
+                      const SizedBox(
+                        height: 20,
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          ElevatedButton(
+                            onPressed: () {
+                              _titleController.clear();
+                              _descController.clear();
+                              Navigator.of( context).pop();
+                            },
+                            style: const ButtonStyle(
+                                backgroundColor:
+                                    MaterialStatePropertyAll(Colors.amber)),
+                            child:const Text("Cancel"),
+                          ),
+                         const SizedBox(width: 7,),
+                        ElevatedButton(
+                            onPressed: () => submitNote(),
+                            style: const ButtonStyle(
+                                backgroundColor:
+                                    MaterialStatePropertyAll(Colors.amber)),
+                            child: Text(id == null ? "Create Item" : "Update Item"),
+                          ),
+                        ],
+                      )
+                    ]),
+              ),
             ));
   }
 
